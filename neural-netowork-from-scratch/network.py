@@ -112,6 +112,34 @@ class Layer_Dense:
     def forward(self,inputs):
         self.output =  np.dot(inputs,self.weights) + self.biases
 
+class Activation_ReLU:
+    def forward(self, inputs):
+        self.output = np.maximum(0,inputs)
+
+class Activation_Softmax():
+    def forward(self, inputs):
+        exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        prob = exp_values / np.sum(exp_values, axis=1, keepdims=True)
+        self.output = prob
+
+class Loss:
+    def calculate(self, output, y):
+        sample_losses = self.forward(output, y)
+        data_loss = np.mean(sample_losses)
+        return data_loss
+
+class Loss_CategoricalCrossEntropy(Loss):
+    def forward(self, y_pred, y_true):
+        samples = len(y_pred)
+        y_pred_clipped = np.clip(y_pred, 1e-7, 1-1e-7)
+        if len(y_true.shape) == 1:
+            correct_confidences = y_pred_clipped[range(samples), y_true]
+        elif len(y_true.shape) == 2:
+            correct_confidences = np.sum(y_pred_clipped * y_true, axis=1)
+        return -np.log(correct_confidences)
+
+
+
 
 layer1 =  Layer_Dense(4,5)
 layer2 =  Layer_Dense(5,2)
@@ -138,10 +166,6 @@ for i in inputs:
         output.append(0)
 
 # rectifed linear object
-
-class Activation_ReLU:
-    def forward(self, inputs):
-        self.output = np.maximum(0,inputs)
 
 
 def create_data(points, classes):
@@ -172,3 +196,88 @@ layer1.forward(X)
 layer1.output
 activation1.forward(layer1.output)
 activation1.output
+
+
+
+# softmax activation funtion
+import math
+layer_outputs = [4.8, 1.21, 2.385]
+E = math.e
+
+exp_values = []
+
+for o in layer_outputs:
+    exp_values.append(E**o)
+
+# exponetiated values
+print(exp_values)
+
+# noramlaized
+
+norm_base = sum(exp_values)
+norm_vals = []
+
+for exp in exp_values:
+    norm_vals.append(exp/norm_base)
+# normalized by dividing each neurons output by the sum on exponentital sum of all neurons
+print(norm_vals)
+sum(norm_vals)
+
+# doing that using numpy
+exp_values = np.exp(layer_outputs)
+print(exp_values)
+norm_values = exp_values / np.sum(exp_values)
+
+# combination of exponentiation and normalization makes softmax activation fucnti on
+
+
+X, y = create_data(100, 3)
+
+dense1 = Layer_Dense(2, 3)
+activation1 = Activation_ReLU()
+
+dense2 =  Layer_Dense(3, 3)
+activation2 = Activation_Softmax()
+
+dense1.forward(X)
+activation1.forward(dense1.output)
+
+dense2.forward(activation1.output)
+activation2.forward(dense2.output)
+activation2.output
+
+loss_func =  Loss_CategoricalCrossEntropy()
+loss_func.calculate(activation2.output, y)
+
+math.log(32)
+np.log(32)
+
+#cross entropy
+
+softmax_output = [1, 0.1, 0.2]
+target_output = [1, 0, 0]
+
+loss = -(math.log(softmax_output[0])*target_output[0]+
+         math.log(softmax_output[1])*target_output[1]+
+         math.log(softmax_output[2])*target_output[2])
+print(loss)
+
+softmax_outputs = [[0.0, 0.1, 0.2],
+                    [0.1, 0.5, 0.4],
+                    [0.02, 0.9, 0.08]]
+class_targets = [0, 1, 1]
+for target_idx, distribution in zip(class_targets,softmax_outputs):
+    print(distribution[target_idx])
+
+softmax_outputs = np.array([[0, 0.1, 0.2],[0.1, 0.5, 0.4],[0.02, 0.9, 0.08]])
+np.mean(-np.log(softmax_outputs[range(len(softmax_outputs)), class_targets]))
+print(-np.log(softmax_outputs[range(len(softmax_outputs)), class_targets]))
+
+ print(-np.log(  1 - 1e-7))
+ softmax_outputs = np.clip(softmax_outputs, 1e-7, 1 - 1e-7)
+
+softmax_outputs = np.array([[0.7,0.2, 0.1],[0.5,0.1,0.4],[0.02, 0.9, 0.08]])
+class_targets = [0,1,1]
+
+pred = np.argmax(softmax_outputs, axis=1)
+np.mean(pred == class_targets)
